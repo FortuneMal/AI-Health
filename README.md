@@ -1,11 +1,11 @@
-# ❤️ Pulse AI: Heart Health Monitor
+# ❤️ LifePulse: Heart Health Monitor
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.16-orange)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![Accuracy](https://img.shields.io/badge/Model%20Accuracy-99.35%25-brightgreen)
 
-**Pulse AI** is a deep learning application designed to predict the risk of heart disease based on clinical patient data. Powered by a custom-trained Artificial Neural Network (ANN), the model achieves **99.35% accuracy** on the test set, assisting medical professionals in early diagnosis.
+**LifePulse** is a deep learning application designed to predict the risk of heart disease based on clinical patient data. Powered by a custom-trained Artificial Neural Network (ANN), the model achieves **99.35% accuracy** on the test set, assisting medical professionals in early diagnosis.
 
 ---
 
@@ -47,7 +47,7 @@ The core "brain" of the application is a **Sequential Neural Network** built wit
 
 1.  **Clone the Repository**
     ```bash
-    git clone [https://github.com/YourUsername/Pulse-AI.git](https://github.com/YourUsername/Pulse-AI.git)
+    git clone [https://github.com/YourUsername/Pulse-AI.git](https://github.com/YourUsername/AI-Health.git)
     cd Pulse-AI
     ```
 
@@ -72,7 +72,7 @@ The core "brain" of the application is a **Sequential Neural Network** built wit
 ## 📂 Project Structure
 
 ```text
-Pulse-AI/
+LifePulse/
 ├── app.py                   # Main Streamlit Dashboard application
 ├── data/                    # Raw and Processed CSV data
 ├── models/                  # Saved AI Models
