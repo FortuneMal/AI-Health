@@ -14,7 +14,7 @@ st.markdown("""
     .main { background-color: #0e1117; }
     h1 { color: #ff4b4b; font-family: 'Helvetica Neue', sans-serif; }
     
-    /* Pulse Animation for the Heart */
+    /* Pulse Animation */
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.1); }
@@ -26,44 +26,24 @@ st.markdown("""
         margin-right: 10px;
     }
     
-    /* Custom Button Styling */
+    /* Button Styling */
     div.stButton > button:first-child {
-        background-color: #ff4b4b;
-        color: white;
-        border-radius: 8px;
-        height: 3em;
-        width: 100%;
-        font-weight: 600;
-        border: none;
-        transition: 0.3s;
+        background-color: #ff4b4b; color: white; border-radius: 8px; height: 3em; width: 100%; font-weight: 600; border: none; transition: 0.3s;
     }
-    div.stButton > button:hover {
-        background-color: #ff1c1c;
-        transform: translateY(-2px);
-    }
+    div.stButton > button:hover { background-color: #ff1c1c; transform: translateY(-2px); }
     
-    /* Input Field Styling */
-    .stNumberInput, .stSelectbox, .stSlider {
-        border-radius: 10px;
+    /* Inputs */
+    .stNumberInput, .stSelectbox, .stSlider { border-radius: 10px; }
+    
+    /* Mode Toggle Box */
+    .mode-box {
+        padding: 15px; border-radius: 10px; margin-bottom: 20px;
+        background-color: #1e2530; border: 1px solid #30363d;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Initialize Session State for "One-Click" Buttons
-# This allows the sidebar buttons to fill the form automatically
-def init_session_state():
-    defaults = {
-        'age': 25, 'sex': 1, 'cp': 0, 'trestbps': 110, 'chol': 150,
-        'fbs': 'No', 'restecg': 0, 'thalach': 175, 'exang': 'No',
-        'oldpeak': 0.0, 'slope': 2, 'ca': 0, 'thal': 2
-    }
-    for key, val in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
-
-init_session_state()
-
-# 3. Load Assets
+# 2. Load Assets
 @st.cache_resource
 def load_assets():
     model_path = os.path.join('models', 'heart_disease_nn_model.keras')
@@ -83,139 +63,149 @@ if model is None:
     st.error("🚨 Critical Error: Models not found! Please check your /models folder.")
     st.stop()
 
-# 4. Sidebar: Controls & Info
+# 3. Sidebar: The "Dual Mode" Logic
 with st.sidebar:
     st.title("🎛️ Control Panel")
-    st.markdown("---")
     
-    st.subheader("⚡ Quick Load Profiles")
-    col_demo1, col_demo2 = st.columns(2)
-    
-    with col_demo1:
-        if st.button("🟢 Healthy"):
-            # Sets inputs to the "Golden Key" healthy values
-            st.session_state.update({
-                'age': 50, 'sex': 1, 'cp': 2, 'trestbps': 120, 'chol': 200,
-                'fbs': 'No', 'restecg': 0, 'thalach': 160, 'exang': 'No',
-                'oldpeak': 0.0, 'slope': 0, 'ca': 0, 'thal': 1
-            })
-            st.rerun()
-            
-    with col_demo2:
-        if st.button("🔴 High Risk"):
-            # Sets inputs to generic high risk values
-            st.session_state.update({
-                'age': 65, 'sex': 1, 'cp': 0, 'trestbps': 160, 'chol': 300,
-                'fbs': 'Yes', 'restecg': 2, 'thalach': 100, 'exang': 'Yes',
-                'oldpeak': 2.5, 'slope': 1, 'ca': 2, 'thal': 1
-            })
-            st.rerun()
+    # --- THE MAGIC TOGGLE ---
+    st.markdown("### Select User Mode")
+    user_mode = st.radio("", ["Patient", "Doctor"], index=0, label_visibility="collapsed")
     
     st.markdown("---")
-    st.info("**Model Accuracy:** 99.35%\n\n**Architecture:** Neural Network (3 Hidden Layers)")
-    st.warning("⚠️ **Disclaimer:** For educational use only. Not a medical device.")
+    
+    if user_mode == "Doctor":
+        st.info("👨‍⚕️ **Doctor Mode Active**\n\nFull clinical controls enabled. Manual entry for ST depression, fluoroscopy, and thalassemia.")
+    else:
+        st.success("👤 **Patient Mode Active**\n\nSimplified interface. Complex clinical markers are auto-filled with 'Healthy' defaults.")
+    
+    st.markdown("---")
+    st.warning("⚠️ **Disclaimer:** For educational use only.")
 
-# 5. Main Title with Animation
+# 4. Main Title
 st.markdown("<h1><span class='heart-icon'>💓</span> LifePulse</h1>", unsafe_allow_html=True)
-st.markdown("### *AI that listens to your heart. So should you.*")
-st.write("Enter patient vitals below to generate a real-time risk assessment.")
+st.markdown("### *AI that listens to your heart.*")
 
-# 6. The Form (Organized into Expanders for Clean UI)
+# 5. The Dynamic Form
 with st.form("medical_form"):
     
-    # Group 1: Demographics & Vitals
-    with st.expander("👤 Patient Details & Vitals", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            age = st.number_input("Age (Years)", 1, 120, key='age')
-            sex = st.selectbox("Biological Sex", [0, 1], format_func=lambda x: "Male" if x == 1 else "Female", key='sex')
-        with c2:
-            trestbps = st.slider("Resting Blood Pressure (mm Hg)", 80, 200, key='trestbps')
-            chol = st.number_input("Cholesterol (mg/dl)", 100, 600, key='chol')
-        with c3:
-            fbs_input = st.radio("Fasting Blood Sugar > 120?", ["No", "Yes"], horizontal=True, key='fbs')
-            cp = st.selectbox("Chest Pain Type", [0, 1, 2, 3], 
-                              format_func=lambda x: ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"][x],
-                              key='cp')
+    # --- SHARED SECTION (Everyone sees this) ---
+    st.subheader("📋 Personal Health Details")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        age = st.number_input("Age", 1, 120, 25)
+        sex = st.selectbox("Biological Sex", [0, 1], format_func=lambda x: "Male" if x == 1 else "Female")
+    with c2:
+        trestbps = st.slider("Resting Blood Pressure", 80, 200, 120, help="Standard BP reading.")
+        chol = st.number_input("Cholesterol", 100, 600, 180, help="Total cholesterol level.")
+    with c3:
+        cp = st.selectbox("Chest Pain Type", [0, 1, 2, 3], 
+                          format_func=lambda x: ["Typical Angina (Severe)", "Atypical Angina", "Non-anginal Pain", "No Pain (Asymptomatic)"][x],
+                          index=3)
 
-# Group 2: Cardiac Stress Test Results (The Confusing Stuff)
-    with st.expander("🏃 Cardiac Stress Test (ECG/EKG Data)"):
-        st.info("ℹ️ These values usually come from an EKG or Stress Test. If you don't know them, leave them at the default 'Normal' settings.")
+    # --- MODE DEPENDENT LOGIC ---
+    if user_mode == "Doctor":
+        # DOCTOR MODE: Show EVERYTHING (The Complex 8)
+        st.markdown("---")
+        st.subheader("👨‍⚕️ Clinical Data")
         
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            thalach = st.slider("Max Heart Rate", 60, 220, key='thalach',
-                                help="The highest heart rate you achieved during exercise. Normal is usually 220 minus your age.")
+        with st.expander("Expand Clinical Markers", expanded=True):
+            d1, d2, d3 = st.columns(3)
+            with d1:
+                fbs_input = st.radio("Fasting BS > 120?", ["No", "Yes"])
+                restecg = st.selectbox("Resting ECG", [0, 1, 2])
+            with d2:
+                thalach = st.slider("Max Heart Rate", 60, 220, 150)
+                exang_input = st.radio("Ex. Angina?", ["No", "Yes"])
+            with d3:
+                oldpeak = st.number_input("Oldpeak (ST Depr)", 0.0, 6.2, 0.0)
+                slope = st.selectbox("ST Slope", [0, 1, 2], index=2)
+                ca = st.selectbox("Major Vessels (CA)", [0, 1, 2, 3, 4])
+                thal = st.selectbox("Thalassemia", [0, 1, 2, 3], index=2)
+    
+    else:
+        # PATIENT MODE: Ask simple questions, assume healthy defaults for complex ones
+        st.markdown("---")
+        st.subheader("🏃 Activity & History")
+        
+        p1, p2 = st.columns(2)
+        with p1:
+            # Smart Logic: Estimate Max Heart Rate based on activity level
+            st.write("**How active are you?**")
+            activity_level = st.select_slider("", options=["Sedentary", "Moderate", "Active", "Athlete"])
             
-            exang_input = st.radio("Pain during exercise?", ["No", "Yes"], horizontal=True, key='exang',
-                                   help="Did you feel chest pain (Angina) while exercising? Select 'No' if unsure.")
-        with c2:
-            oldpeak = st.number_input("ST Depression", 0.0, 6.2, step=0.1, key='oldpeak',
-                                      help="A value measured on an ECG graph. 0.0 is normal. Higher numbers indicate stress.")
+            # Backend Logic for Heart Rate (Thalach)
+            if activity_level == "Sedentary": thalach = 130
+            elif activity_level == "Moderate": thalach = 150
+            elif activity_level == "Active": thalach = 170
+            else: thalach = 185
+            st.caption(f"Estimated Peak Heart Rate: {thalach} bpm")
             
-            slope = st.selectbox("ST Slope", [0, 1, 2], index=2, key='slope',
-                                 format_func=lambda x: ["Upsloping (Best)", "Flat (Ok)", "Downsloping (Bad)"][x],
-                                 help="The shape of the wave on your ECG. 'Upsloping' is usually healthy.")
-        with c3:
-            restecg = st.selectbox("Resting ECG", [0, 1, 2], index=0, key='restecg',
-                                   format_func=lambda x: ["Normal", "Abnormality", "Hypertrophy"][x],
-                                   help="Results from a resting EKG. Select 'Normal' if you haven't had one.")
+        with p2:
+            st.write("**Do you feel chest pain when you run/walk?**")
+            exang_input = st.radio("", ["No", "Yes"])
 
-    # Group 3: Advanced Markers (Blood & Scans)
-    with st.expander("🔬 Advanced Markers (Blood/Scan)"):
-        c1, c2 = st.columns(2)
-        with c1:
-            ca = st.selectbox("Major Vessels (Fluoroscopy)", [0, 1, 2, 3, 4], index=0, key='ca',
-                              help="How many major blood vessels were colored by dye during a scan. 0 is normal/clear. Higher means blockages.")
-        with c2:
-            thal = st.selectbox("Thalassemia", [0, 1, 2, 3], index=1, key='thal',
-                                format_func=lambda x: ["Unknown", "Normal", "Fixed Defect", "Reversable Defect"][x],
-                                help="A blood disorder. 'Normal' is... normal. 'Fixed/Reversable Defect' indicates blood flow issues.")
+        # --- HIDDEN DEFAULTS (The Imputation Layer) ---
+        # We fill these with "Healthy" values so the Neural Network doesn't crash
+        fbs_input = "No"      # Assume normal sugar
+        restecg = 1           # Assume Normal ECG (1 is often Normal in some datasets, checking your previous healthy patient)
+                              # Note: In your specific dataset, 1 was 'Normal' for the Healthy patient example.
+        oldpeak = 0.0         # Assume No ST Depression
+        slope = 2             # Assume Upsloping (Healthy)
+        ca = 0                # Assume 0 Blocked Vessels
+        thal = 2              # Assume Normal Thalassemia
 
     # Submit Button
     submitted = st.form_submit_button("🔍 RUN DIAGNOSTIC SCAN")
 
-# 7. Prediction Logic (Strictly Preserved)
+# 6. Prediction Logic
 if submitted:
     
-    # 1. Convert Inputs to Integers (Same logic as before)
+    # 1. Convert Inputs to Machine Readable
     fbs = 1 if fbs_input == "Yes" else 0
     exang = 1 if exang_input == "Yes" else 0
     
     # 2. Create DataFrame with EXACT column order
-    input_data = pd.DataFrame([[age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]],
-                              columns=['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal'])
+    # Note: We use the variables we either collected or defaulted above
+    cols = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+    input_data = pd.DataFrame([[age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]], columns=cols)
     
     # 3. Scale ONLY the 5 numerical columns
     cols_to_scale = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
     input_data[cols_to_scale] = scaler.transform(input_data[cols_to_scale])
     
     # 4. Predict
-    with st.spinner('Listening to the data...'):
+    with st.spinner('Listening to your heart...'):
         prediction_prob = model.predict(input_data)[0][0]
     
-    # 5. Display Results
+    # 5. Results Display
     st.divider()
     col_res1, col_res2 = st.columns([3, 1])
     
     with col_res1:
+        # Standard Logic: < 0.5 is High Risk
         if prediction_prob < 0.5:
             st.error(f"## ⚠️ High Cardiac Risk Detected")
-            st.markdown(f"**Confidence Score: {(1-prediction_prob):.1%}**")
-            st.markdown("""
-                LifePulse has identified patterns consistent with heart disease. 
-                * **Recommendation:** Immediate consultation with a cardiologist is advised.
-                * **Next Step:** Perform detailed stress testing and angiography.
-            """)
+            st.markdown(f"**Confidence Score: {prediction_prob:.1%}**")
+            
+            if user_mode == "Patient":
+                st.write("### What does this mean?")
+                st.write("Your reported symptoms and vitals align with patterns found in heart disease. This is **not a diagnosis**, but a strong signal to check in with a doctor.")
+                st.markdown("**Recommended Action:** Schedule a check-up this week.")
+            else:
+                st.write("Clinical markers indicate high probability of heart disease presence.")
+                st.markdown("**Next Step:** Perform angiography and stress testing.")
+                
         else:
             st.success(f"## ✅ Low Risk / Healthy Profile")
-            st.markdown(f"**Confidence Score: {prediction_prob:.1%}**") # Invert for Health Confidence
-            st.markdown("""
-                Patient vitals are within healthy parameters.
-                * **Recommendation:** Maintain current lifestyle and routine checkups.
-                * **Next Step:** No immediate intervention required.
-            """)
-            st.balloons()
+            st.markdown(f"**Confidence Score: {(1-prediction_prob):.1%}**") # Invert for Health Confidence
+            
+            if user_mode == "Patient":
+                st.write("### Good News!")
+                st.write("Your heart profile looks strong. Keep up the healthy lifestyle.")
+                st.balloons()
+            else:
+                st.write("Patient vitals are within healthy parameters. No immediate intervention required.")
+                st.balloons()
 
     with col_res2:
         st.write("### Risk Gauge")
