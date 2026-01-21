@@ -117,7 +117,7 @@ with st.sidebar:
 
 # 5. Main Title with Animation
 st.markdown("<h1><span class='heart-icon'>💓</span> LifePulse</h1>", unsafe_allow_html=True)
-st.markdown("### *AI that listens to your heart.*")
+st.markdown("### *AI that listens to your heart. So should you.*")
 st.write("Enter patient vitals below to generate a real-time risk assessment.")
 
 # 6. The Form (Organized into Expanders for Clean UI)
