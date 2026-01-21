@@ -95,9 +95,9 @@ with st.sidebar:
         if st.button("🟢 Healthy"):
             # Sets inputs to the "Golden Key" healthy values
             st.session_state.update({
-                'age': 55, 'sex': 1, 'cp': 0, 'trestbps': 140, 'chol': 217,
-                'fbs': 'No', 'restecg': 1, 'thalach': 111, 'exang': 'Yes',
-                'oldpeak': 5.6, 'slope': 0, 'ca': 0, 'thal': 3
+                'age': 50, 'sex': 1, 'cp': 2, 'trestbps': 120, 'chol': 200,
+                'fbs': 'No', 'restecg': 0, 'thalach': 160, 'exang': 'No',
+                'oldpeak': 0.0, 'slope': 0, 'ca': 0, 'thal': 1
             })
             st.rerun()
             
@@ -138,25 +138,39 @@ with st.form("medical_form"):
                               format_func=lambda x: ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"][x],
                               key='cp')
 
-    # Group 2: Cardiac Stress Test Results
-    with st.expander("🏃 Cardiac Stress Test"):
+# Group 2: Cardiac Stress Test Results (The Confusing Stuff)
+    with st.expander("🏃 Cardiac Stress Test (ECG/EKG Data)"):
+        st.info("ℹ️ These values usually come from an EKG or Stress Test. If you don't know them, leave them at the default 'Normal' settings.")
+        
         c1, c2, c3 = st.columns(3)
         with c1:
-            thalach = st.slider("Max Heart Rate Achieved", 60, 220, key='thalach')
-            exang_input = st.radio("Exercise Induced Angina?", ["No", "Yes"], horizontal=True, key='exang')
+            thalach = st.slider("Max Heart Rate", 60, 220, key='thalach',
+                                help="The highest heart rate you achieved during exercise. Normal is usually 220 minus your age.")
+            
+            exang_input = st.radio("Pain during exercise?", ["No", "Yes"], horizontal=True, key='exang',
+                                   help="Did you feel chest pain (Angina) while exercising? Select 'No' if unsure.")
         with c2:
-            oldpeak = st.number_input("ST Depression (Oldpeak)", 0.0, 6.2, step=0.1, key='oldpeak')
-            slope = st.selectbox("ST Slope", [0, 1, 2], format_func=lambda x: ["Upsloping", "Flat", "Downsloping"][x], key='slope')
+            oldpeak = st.number_input("ST Depression", 0.0, 6.2, step=0.1, key='oldpeak',
+                                      help="A value measured on an ECG graph. 0.0 is normal. Higher numbers indicate stress.")
+            
+            slope = st.selectbox("ST Slope", [0, 1, 2], index=2, key='slope',
+                                 format_func=lambda x: ["Upsloping (Best)", "Flat (Ok)", "Downsloping (Bad)"][x],
+                                 help="The shape of the wave on your ECG. 'Upsloping' is usually healthy.")
         with c3:
-            restecg = st.selectbox("Resting ECG Results", [0, 1, 2], format_func=lambda x: ["Normal", "ST-T Wave Abnormality", "LV Hypertrophy"][x], key='restecg')
+            restecg = st.selectbox("Resting ECG", [0, 1, 2], index=0, key='restecg',
+                                   format_func=lambda x: ["Normal", "Abnormality", "Hypertrophy"][x],
+                                   help="Results from a resting EKG. Select 'Normal' if you haven't had one.")
 
-    # Group 3: Advanced Markers
-    with st.expander("🔬 Advanced Markers"):
+    # Group 3: Advanced Markers (Blood & Scans)
+    with st.expander("🔬 Advanced Markers (Blood/Scan)"):
         c1, c2 = st.columns(2)
         with c1:
-            ca = st.selectbox("Number of Major Vessels (0-4)", [0, 1, 2, 3, 4], key='ca')
+            ca = st.selectbox("Major Vessels (Fluoroscopy)", [0, 1, 2, 3, 4], index=0, key='ca',
+                              help="How many major blood vessels were colored by dye during a scan. 0 is normal/clear. Higher means blockages.")
         with c2:
-            thal = st.selectbox("Thalassemia", [0, 1, 2, 3], format_func=lambda x: ["Unknown", "Normal", "Fixed Defect", "Reversable Defect"][x], key='thal')
+            thal = st.selectbox("Thalassemia", [0, 1, 2, 3], index=1, key='thal',
+                                format_func=lambda x: ["Unknown", "Normal", "Fixed Defect", "Reversable Defect"][x],
+                                help="A blood disorder. 'Normal' is... normal. 'Fixed/Reversable Defect' indicates blood flow issues.")
 
     # Submit Button
     submitted = st.form_submit_button("🔍 RUN DIAGNOSTIC SCAN")
@@ -185,9 +199,9 @@ if submitted:
     col_res1, col_res2 = st.columns([3, 1])
     
     with col_res1:
-        if prediction_prob > 0.5:
+        if prediction_prob < 0.5:
             st.error(f"## ⚠️ High Cardiac Risk Detected")
-            st.markdown(f"**Confidence Score: {prediction_prob:.1%}**")
+            st.markdown(f"**Confidence Score: {(1-prediction_prob):.1%}**")
             st.markdown("""
                 LifePulse has identified patterns consistent with heart disease. 
                 * **Recommendation:** Immediate consultation with a cardiologist is advised.
@@ -195,7 +209,7 @@ if submitted:
             """)
         else:
             st.success(f"## ✅ Low Risk / Healthy Profile")
-            st.markdown(f"**Confidence Score: {(1-prediction_prob):.1%}**") # Invert for Health Confidence
+            st.markdown(f"**Confidence Score: {prediction_prob:.1%}**") # Invert for Health Confidence
             st.markdown("""
                 Patient vitals are within healthy parameters.
                 * **Recommendation:** Maintain current lifestyle and routine checkups.
