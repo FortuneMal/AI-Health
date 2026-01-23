@@ -147,8 +147,7 @@ with st.form("medical_form"):
         # --- HIDDEN DEFAULTS (The Imputation Layer) ---
         # We fill these with "Healthy" values so the Neural Network doesn't crash
         fbs_input = "No"      # Assume normal sugar
-        restecg = 1           # Assume Normal ECG (1 is often Normal in some datasets, checking your previous healthy patient)
-                              # Note: In your specific dataset, 1 was 'Normal' for the Healthy patient example.
+        restecg = 1           # Assume Normal ECG
         oldpeak = 0.0         # Assume No ST Depression
         slope = 2             # Assume Upsloping (Healthy)
         ca = 0                # Assume 0 Blocked Vessels
@@ -165,7 +164,6 @@ if submitted:
     exang = 1 if exang_input == "Yes" else 0
     
     # 2. Create DataFrame with EXACT column order
-    # Note: We use the variables we either collected or defaulted above
     cols = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
     input_data = pd.DataFrame([[age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]], columns=cols)
     
@@ -177,24 +175,56 @@ if submitted:
     with st.spinner('Listening to your heart...'):
         prediction_prob = model.predict(input_data)[0][0]
     
-    # 5. Display Results (CLEAN VERSION - No Scores)
+    # ---------------------------------------------------------
+    # 🛡️ CLINICAL SAFETY NET (Hybrid Rule-Based System)
+    # If the AI misses a dangerous value (like High BP), we force a warning.
+    # ---------------------------------------------------------
+    risk_factors = []
+    
+    if trestbps >= 160:
+        risk_factors.append(f"CRITICAL: Resting Blood Pressure is dangerously high ({trestbps}).")
+    if chol >= 280:
+        risk_factors.append(f"CRITICAL: Cholesterol is very high ({chol}).")
+    if oldpeak >= 2.5:
+        risk_factors.append(f"WARNING: ST Depression indicates heart stress ({oldpeak}).")
+    if fbs == 1:
+        risk_factors.append("WARNING: High Fasting Blood Sugar (Diabetes Risk).")
+
+    # 5. Display Results
     st.divider()
     col_res1, col_res2 = st.columns([3, 1])
     
     with col_res1:
-        # Standard Logic: > 0.5 is High Risk
-        if prediction_prob > 0.5:
-            st.error(f"## ⚠️ High Cardiac Risk Detected")
+        
+        # LOGIC: High Risk IF AI says so (> 0.5) OR Critical Risk Factors exist
+        if prediction_prob > 0.5 or len(risk_factors) > 0:
             
-            if user_mode == "Patient":
-                st.write("### What does this mean?")
-                st.write("Your reported symptoms and vitals align with patterns found in heart disease. This is a strong signal to check in with a doctor.")
-                st.markdown("**Recommended Action:** Schedule a professional medical check-up.")
+            # Case A: AI didn't catch it, but our Rules did
+            if prediction_prob <= 0.5:
+                st.warning(f"## ⚠️ Clinical Alert Triggered")
+                st.write("**The AI model predicts Low Risk based on history, BUT your vitals show critical danger signs:**")
+            
+            # Case B: AI and Rules agree on High Risk
             else:
-                st.write("Clinical markers indicate high probability of heart disease presence.")
-                st.markdown("**Next Step:** Perform angiography and stress testing.")
+                st.error(f"## ⚠️ High Cardiac Risk Detected")
+                
+                if user_mode == "Patient":
+                    st.write("### What does this mean?")
+                    st.write("Your reported symptoms and vitals align with patterns found in heart disease. This is a strong signal to check in with a doctor.")
+                    st.markdown("**Recommended Action:** Schedule a professional medical check-up.")
+                else:
+                    st.write("Clinical markers indicate high probability of heart disease presence.")
+                    st.markdown("**Next Step:** Perform angiography and stress testing.")
+
+            # List specific dangers (Safety Net Output)
+            if len(risk_factors) > 0:
+                st.markdown("---")
+                st.markdown("#### 🚨 Specific Risk Factors:")
+                for risk in risk_factors:
+                    st.markdown(f"* {risk}")
                 
         else:
+            # Healthy (Only if AI says Safe AND No Rules Triggered)
             st.success(f"## ✅ Low Risk / Healthy Profile")
             
             if user_mode == "Patient":
@@ -205,13 +235,9 @@ if submitted:
                 st.write("Patient vitals are within healthy parameters. No immediate intervention required.")
                 st.balloons()
 
-    # We leave col_res2 empty or use it for a simple icon
+    # Icon Display
     with col_res2:
-        if prediction_prob > 0.5:
+        if prediction_prob > 0.5 or len(risk_factors) > 0:
             st.markdown("🚨")
         else:
             st.markdown("💖")
-
-    with col_res2:
-        st.write("### Risk Gauge")
-        st.progress(float(prediction_prob))
