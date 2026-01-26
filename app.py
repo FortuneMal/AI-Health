@@ -197,7 +197,7 @@ if submitted:
     with col_res1:
         
         # LOGIC: High Risk IF AI says so (> 0.5) OR Critical Risk Factors exist
-        if prediction_prob > 0.5 or len(risk_factors) > 0:
+        if prediction_prob < 0.5 or len(risk_factors) > 0:
             
             # Case A: AI didn't catch it, but our Rules did
             if prediction_prob <= 0.5:
